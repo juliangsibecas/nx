@@ -10,8 +10,10 @@ import {
   type ProjectGraphProjectNode,
   type Tree,
 } from '@nx/devkit';
+import ignore from 'ignore';
 import { applyEdits, modify } from 'jsonc-parser';
 import { dirname, normalize, relative } from 'node:path/posix';
+import { findMatchingProjects } from 'nx/src/utils/find-matching-projects';
 import type { SyncGeneratorResult } from 'nx/src/utils/sync-generators';
 import * as ts from 'typescript';
 import {
@@ -36,6 +38,13 @@ const COMMON_RUNTIME_TS_CONFIG_FILE_NAMES = [
   'tsconfig.esm.json',
   'tsconfig.runtime.json',
 ];
+
+type GeneratorOptions = {
+  runtimeTsConfigFileNames?: string[];
+  projectsToKeepStaleReferences?: string[];
+};
+
+type NormalizedGeneratorOptions = Required<GeneratorOptions>;
 
 export async function syncGenerator(tree: Tree): Promise<SyncGeneratorResult> {
   // Ensure that the plugin has been wired up in nx.json
@@ -151,23 +160,46 @@ export async function syncGenerator(tree: Tree): Promise<SyncGeneratorResult> {
     }
   }
 
-  const runtimeTsConfigFileNames =
-    (nxJson.sync?.generatorOptions?.['@nx/js:typescript-sync']
-      ?.runtimeTsConfigFileNames as string[]) ??
-    COMMON_RUNTIME_TS_CONFIG_FILE_NAMES;
+  const userOptions = nxJson.sync?.generatorOptions?.[
+    '@nx/js:typescript-sync'
+  ] as GeneratorOptions | undefined;
+  const {
+    runtimeTsConfigFileNames,
+    projectsToKeepStaleReferences,
+  }: NormalizedGeneratorOptions = {
+    runtimeTsConfigFileNames:
+      userOptions?.runtimeTsConfigFileNames ??
+      COMMON_RUNTIME_TS_CONFIG_FILE_NAMES,
+    projectsToKeepStaleReferences:
+      userOptions?.projectsToKeepStaleReferences ?? [],
+  };
+
+  let matchingProjects: string[];
+  const keepStaleReferencesProjectMatcher = (project: string): boolean => {
+    if (!projectsToKeepStaleReferences.length) {
+      return false;
+    }
+
+    matchingProjects ??= findMatchingProjects(
+      projectsToKeepStaleReferences,
+      projectGraph.nodes
+    );
+
+    return matchingProjects.includes(project);
+  };
 
   const collectedDependencies = new Map<string, ProjectGraphProjectNode[]>();
-  for (const [name, data] of Object.entries(projectGraph.dependencies)) {
+  for (const [projectName, data] of Object.entries(projectGraph.dependencies)) {
     if (
-      !projectGraph.nodes[name] ||
-      projectGraph.nodes[name].data.root === '.' ||
+      !projectGraph.nodes[projectName] ||
+      projectGraph.nodes[projectName].data.root === '.' ||
       !data.length
     ) {
       continue;
     }
 
     // Get the source project nodes for the source and target
-    const sourceProjectNode = projectGraph.nodes[name];
+    const sourceProjectNode = projectGraph.nodes[projectName];
 
     // Find the relevant tsconfig file for the source project
     const sourceProjectTsconfigPath = joinPathFragments(
@@ -179,7 +211,7 @@ export async function syncGenerator(tree: Tree): Promise<SyncGeneratorResult> {
     ) {
       if (process.env.NX_VERBOSE_LOGGING === 'true') {
         logger.warn(
-          `Skipping project "${name}" as there is no tsconfig.json file found in the project root "${sourceProjectNode.data.root}".`
+          `Skipping project "${projectName}" as there is no tsconfig.json file found in the project root "${sourceProjectNode.data.root}".`
         );
       }
       continue;
@@ -188,7 +220,7 @@ export async function syncGenerator(tree: Tree): Promise<SyncGeneratorResult> {
     // Collect the dependencies of the source project
     const dependencies = collectProjectDependencies(
       tree,
-      name,
+      projectName,
       projectGraph,
       collectedDependencies
     );
@@ -216,8 +248,9 @@ export async function syncGenerator(tree: Tree): Promise<SyncGeneratorResult> {
           tsconfigHasCompositeEnabledCache,
           runtimeTsConfigPath,
           dependencies,
-          sourceProjectNode.data.root,
+          sourceProjectNode,
           projectRoots,
+          keepStaleReferencesProjectMatcher,
           runtimeTsConfigFileName,
           runtimeTsConfigFileNames
         ) || hasChanges;
@@ -232,8 +265,9 @@ export async function syncGenerator(tree: Tree): Promise<SyncGeneratorResult> {
         tsconfigHasCompositeEnabledCache,
         sourceProjectTsconfigPath,
         dependencies,
-        sourceProjectNode.data.root,
-        projectRoots
+        sourceProjectNode,
+        projectRoots,
+        keepStaleReferencesProjectMatcher
       ) || hasChanges;
   }
 
@@ -288,8 +322,9 @@ function updateTsConfigReferences(
   tsconfigHasCompositeEnabledCache: Map<string, boolean>,
   tsConfigPath: string,
   dependencies: ProjectGraphProjectNode[],
-  projectRoot: string,
+  projectNode: ProjectGraphProjectNode,
   projectRoots: Set<string>,
+  keepStaleReferencesProjectMatcher: (project: string) => boolean,
   runtimeTsConfigFileName?: string,
   possibleRuntimeTsConfigFileNames?: string[]
 ): boolean {
@@ -304,9 +339,20 @@ function updateTsConfigReferences(
   const references = [];
   const originalReferencesSet = new Set();
   const newReferencesSet = new Set();
+
+  const shouldKeepStaleReferences = keepStaleReferencesProjectMatcher(
+    projectNode.name
+  );
   for (const ref of tsConfig.references ?? []) {
     const normalizedPath = normalizeReferencePath(ref.path);
     originalReferencesSet.add(normalizedPath);
+    if (shouldKeepStaleReferences) {
+      // we keep all references regardless of whether they are stale or not
+      references.push(ref);
+      newReferencesSet.add(normalizedPath);
+      continue;
+    }
+
     // reference path is relative to the tsconfig file
     const resolvedRefPath = getTsConfigPathFromReferencePath(
       tree,
@@ -318,11 +364,12 @@ function updateTsConfigReferences(
         tree,
         rawTsconfigContentsCache,
         resolvedRefPath,
-        projectRoot,
+        projectNode.data.root,
         projectRoots
-      )
+      ) ||
+      isProjectReferenceIgnored(tree, resolvedRefPath)
     ) {
-      // we keep all references within the current Nx project
+      // we keep all references within the current Nx project or that are ignored
       references.push(ref);
       newReferencesSet.add(normalizedPath);
     }
@@ -392,7 +439,10 @@ function updateTsConfigReferences(
         continue;
       }
     }
-    const relativePathToTargetRoot = relative(projectRoot, referencePath);
+    const relativePathToTargetRoot = relative(
+      projectNode.data.root,
+      referencePath
+    );
     if (!newReferencesSet.has(relativePathToTargetRoot)) {
       newReferencesSet.add(relativePathToTargetRoot);
       // Make sure we unshift rather than push so that dependencies are built in the right order by TypeScript when it is run directly from the root of the workspace
@@ -509,6 +559,22 @@ function isProjectReferenceWithinNxProject(
 
   // it's inside the project root, so it's an internal project reference
   return true;
+}
+
+function isProjectReferenceIgnored(
+  tree: Tree,
+  refTsConfigPath: string
+): boolean {
+  const ig = ignore();
+  if (tree.exists('.gitignore')) {
+    ig.add('.git');
+    ig.add(tree.read('.gitignore', 'utf-8'));
+  }
+  if (tree.exists('.nxignore')) {
+    ig.add(tree.read('.nxignore', 'utf-8'));
+  }
+
+  return ig.ignores(refTsConfigPath);
 }
 
 function getTsConfigDirName(
