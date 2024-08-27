@@ -7,8 +7,11 @@ import {
   updateJson,
   updateFile,
   e2eCwd,
+  readJson,
+  tmpProjPath,
 } from '@nx/e2e/utils';
 import { writeFileSync, mkdirSync, rmdirSync } from 'fs';
+import { createGradleProject } from '@nx/e2e/gradle';
 import { execSync } from 'node:child_process';
 import { join } from 'path';
 
@@ -34,15 +37,20 @@ describe('Nx Import', () => {
         return json;
       });
     }
+    updateFile(
+      '.gitignore',
+      `.nx/cache
+.nx/workspace-data`
+    );
 
     try {
-      rmdirSync(join(tempImportE2ERoot));
+      rmdirSync(tempImportE2ERoot);
     } catch {}
+    mkdirSync(tempImportE2ERoot, { recursive: true });
   });
   afterAll(() => cleanupProject());
 
   it('should be able to import a vite app', () => {
-    mkdirSync(join(tempImportE2ERoot), { recursive: true });
     const tempViteProjectName = 'created-vite-app';
     execSync(
       `npx create-vite@latest ${tempViteProjectName} --template react-ts`,
@@ -77,12 +85,12 @@ describe('Nx Import', () => {
     );
 
     checkFilesExist(
-      'projects/vite-app/.gitignore',
-      'projects/vite-app/package.json',
-      'projects/vite-app/index.html',
-      'projects/vite-app/vite.config.ts',
-      'projects/vite-app/src/main.tsx',
-      'projects/vite-app/src/App.tsx'
+      `${directory}/.gitignore`,
+      `${directory}/package.json`,
+      `${directory}/index.html`,
+      `${directory}vite.config.ts`,
+      `${directory}/src/main.tsx`,
+      `${directory}/src/App.tsx`
     );
     runCLI(`vite:build created-vite-app`);
   });
@@ -135,5 +143,51 @@ describe('Nx Import', () => {
     );
 
     checkFilesExist('packages/a/README.md', 'packages/b/README.md');
+  });
+
+  it('should be able to import a gradle app', () => {
+    const tempGradleProjectName = 'created-gradle-app';
+    const tempGraldeProjectPath = join(
+      tempImportE2ERoot,
+      tempGradleProjectName
+    );
+    try {
+      rmdirSync(tempGraldeProjectPath);
+    } catch {}
+    mkdirSync(tempGraldeProjectPath, { recursive: true });
+    createGradleProject(tempGradleProjectName, 'kotlin', tempGraldeProjectPath);
+    execSync(`git init`, {
+      cwd: tempGraldeProjectPath,
+    });
+    execSync(`git add .`, {
+      cwd: tempGraldeProjectPath,
+    });
+    execSync(`git commit -am "initial commit"`, {
+      cwd: tempGraldeProjectPath,
+    });
+    execSync(`git checkout -b main`, {
+      cwd: tempGraldeProjectPath,
+    });
+
+    writeFileSync(join(tmpProjPath(), 'settings.gradle.kts'), ''); // write settings.gradle.kts so no need to run gradle init
+
+    const remote = tempGraldeProjectPath;
+    const ref = 'main';
+    const source = '.';
+    const directory = 'projects/gradle-app';
+
+    runCLI(
+      `import ${remote} ${directory} --ref ${ref} --source ${source} --no-interactive`,
+      {
+        verbose: true,
+      }
+    );
+
+    checkFilesExist(`${directory}/settings.gradle.kts`);
+    const nxJson = readJson('nx.json');
+    const gradlePlugin = nxJson.plugins.find(
+      (plugin) => plugin.plugin === '@nx/gradle'
+    );
+    expect(gradlePlugin).toBeDefined();
   });
 });

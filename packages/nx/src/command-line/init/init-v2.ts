@@ -186,9 +186,9 @@ export async function detectPlugins(
   plugins: string[];
   updatePackageScripts: boolean;
 }> {
-  let files = ['package.json'].concat(
-    await globWithWorkspaceContext(process.cwd(), ['**/*/package.json'])
-  );
+  const packageJsonFiles = await filesExistInWorkspace(process.cwd(), [
+    'package.json',
+  ]);
 
   const currentPlugins = new Set(
     (nxJson.plugins ?? []).map((p) => {
@@ -198,9 +198,7 @@ export async function detectPlugins(
   );
 
   const detectedPlugins = new Set<string>();
-  for (const file of files) {
-    if (!existsSync(file)) continue;
-
+  for (const file of packageJsonFiles) {
     let packageJson: PackageJson;
     try {
       packageJson = readJsonFile(file);
@@ -220,7 +218,12 @@ export async function detectPlugins(
       }
     }
   }
-  if (existsSync('gradlew') || existsSync('gradlew.bat')) {
+
+  const gradleFiles = await filesExistInWorkspace(process.cwd(), [
+    'settings.gradle',
+    'settings.gradle.kts',
+  ]);
+  if (gradleFiles.length > 0) {
     detectedPlugins.add('@nx/gradle');
   }
 
@@ -300,4 +303,19 @@ export async function detectPlugins(
     ]).then((r) => r.updatePackageScripts === 'Yes'));
 
   return { plugins: pluginsToInstall, updatePackageScripts };
+}
+
+/**
+ * This funciton finds all files in the workspace that match the given file names.
+ * If multiple files with the same name are found, all of them are returned.
+ */
+async function filesExistInWorkspace(
+  workspaceRoot: string,
+  fileNames: string[]
+): Promise<string[]> {
+  const files = await globWithWorkspaceContext(
+    workspaceRoot,
+    fileNames.map((fileName) => `**/${fileName}`)
+  );
+  return files.filter((fileName) => existsSync(fileName));
 }
