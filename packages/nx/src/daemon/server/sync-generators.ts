@@ -9,7 +9,7 @@ import {
   collectRegisteredTaskSyncGenerators,
   flushSyncGeneratorChanges,
   runSyncGenerator,
-  type SyncGeneratorChangesResult,
+  type SyncGeneratorRunResult,
 } from '../../utils/sync-generators';
 import { workspaceRoot } from '../../utils/workspace-root';
 import { serverLogger } from './logger';
@@ -17,7 +17,7 @@ import { getCachedSerializedProjectGraphPromise } from './project-graph-incremen
 
 const syncGeneratorsCacheResultPromises = new Map<
   string,
-  Promise<SyncGeneratorChangesResult>
+  Promise<SyncGeneratorRunResult>
 >();
 let registeredTaskSyncGenerators = new Set<string>();
 let registeredGlobalSyncGenerators = new Set<string>();
@@ -36,7 +36,7 @@ const log = (...messageParts: unknown[]) => {
 // TODO(leo): check conflicts and reuse the Tree where possible
 export async function getCachedSyncGeneratorChanges(
   generators: string[]
-): Promise<SyncGeneratorChangesResult[]> {
+): Promise<SyncGeneratorRunResult[]> {
   try {
     log('get sync generators changes on demand', generators);
     // this is invoked imperatively, so we clear any scheduled run
@@ -253,7 +253,15 @@ function runGenerator(
   syncGeneratorsCacheResultPromises.set(
     generator,
     runSyncGenerator(tree, generator, projects).then((result) => {
-      log(generator, 'changes:', result.changes.map((c) => c.path).join(', '));
+      if ('error' in result) {
+        log(generator, 'error:', result.error.message);
+      } else {
+        log(
+          generator,
+          'changes:',
+          result.changes.map((c) => c.path).join(', ')
+        );
+      }
       return result;
     })
   );
