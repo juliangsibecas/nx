@@ -26,7 +26,7 @@ Projects in Nx are the different parts of the monorepo which can have tasks run 
 The best way to see what projects are in your workspace is to view the [project graph](#explore-the-project-graph) which will be covered in the next section.
 Another way is to look at the **Projects** pane in [Nx Console](/getting-started/editor-setup) or run `nx show projects` to show a list of projects in your terminal.
 
-You can see more details about a specific project in Nx Console or by running `nx show project <project-name> --web`. Both methods will show something like the example below:
+You can see more details about a specific project in Nx Console or by running `nx show project <project-name>`. Both methods will show something like the example below:
 
 {% project-details  jsonFile="shared/concepts/myreactapp.json"%}
 {% /project-details %}

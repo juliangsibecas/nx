@@ -162,7 +162,7 @@ npx nx add @nx/gradle
 
 That is it, it will add `@nx/gradle` plugin to your Nx workspace.
 
-You can view inferred tasks for Gradle project in your workspace, open the [project details view](/features/explore-graph#explore-projects-in-your-workspace) in Nx Console or run `nx show project my-project --web` in the command line.
+You can view inferred tasks for Gradle project in your workspace, open the [project details view](/features/explore-graph#explore-projects-in-your-workspace) in Nx Console or run `nx show project my-project` in the command line.
 
 For all the interred tasks, you can run using Nx instead of Gradle:
 

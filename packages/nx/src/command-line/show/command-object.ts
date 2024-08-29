@@ -168,11 +168,15 @@ const showProjectCommand: CommandModule<NxShowArgs, ShowProjectOptions> = {
       })
       .example(
         '$0 show project my-app',
+        'View project information for my-app (in the browser if the terminal is interactive or JSON format otherwise)'
+      )
+      .example(
+        '$0 show project my-app --json',
         'View project information for my-app in JSON format'
       )
       .example(
-        '$0 show project my-app --web',
-        'View project information for my-app in the browser'
+        '$0 show project my-app --json false',
+        'View project information for my-app a human readable format'
       ),
   handler: async (args) => {
     const exitCode = await handleErrors(args.verbose as boolean, async () => {

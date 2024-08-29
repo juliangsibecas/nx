@@ -616,7 +616,7 @@ npx nx e2e angular-store-e2e # runs e2e tests for the angular-store
 Nx identifies available tasks for your project from [tooling configuration files](/concepts/inferred-tasks), `package.json` scripts and the targets defined in `project.json`. All tasks from the `angular-store` project are defined in its `project.json` file, but the companion `angular-store-e2e` project has its tasks inferred from configuration files. To view the tasks that Nx has detected, look in the [Nx Console](/getting-started/editor-setup), [Project Details View](/recipes/nx-console/console-project-details) or run:
 
 ```shell
-npx nx show project angular-store-e2e --web
+npx nx show project angular-store-e2e
 ```
 
 {% project-details title="Project Details View" %}

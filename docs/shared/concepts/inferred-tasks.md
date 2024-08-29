@@ -46,7 +46,7 @@ Plugins are processed in the order that they appear in the `plugins` array in `n
 To view the task settings for projects in your workspace, [show the project details](/features/explore-graph) either from the command line or using Nx Console.
 
 ```shell
-nx show project my-project --web
+nx show project my-project
 ```
 
 {% project-details  jsonFile="shared/concepts/myreactapp.json"%}

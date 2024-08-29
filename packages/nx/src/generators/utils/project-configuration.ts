@@ -392,7 +392,7 @@ function handleEmptyTargets(
     delete projectConfiguration.targets;
     projectConfiguration[
       '// targets'
-    ] = `to see all targets run: nx show project ${projectName} --web`;
+    ] = `to see all targets run: nx show project ${projectName}`;
     projectConfiguration.targets = {};
   } else {
     delete projectConfiguration['// targets'];

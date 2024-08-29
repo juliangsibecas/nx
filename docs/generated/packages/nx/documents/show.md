@@ -77,12 +77,6 @@ Show information about "my-app" in a human readable format:
  nx show project my-app --json false
 ```
 
-Opens a web browser to explore the configuration of "my-app":
-
-```shell
- nx show project my-app --web
-```
-
 ## Shared Options
 
 ### help

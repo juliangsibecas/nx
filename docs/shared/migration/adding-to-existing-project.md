@@ -108,7 +108,7 @@ To view all available tasks, open the Project Details view with Nx Console or us
 details in a browser window.
 
 ```shell
-nx show project my-workspace --web
+nx show project my-workspace
 ```
 
 {% project-details title="Project Details View" %}

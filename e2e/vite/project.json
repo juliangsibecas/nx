@@ -4,6 +4,6 @@
   "sourceRoot": "e2e/vite",
   "projectType": "application",
   "implicitDependencies": ["vite"],
-  "// targets": "to see all targets run: nx show project e2e-vite --web",
+  "// targets": "to see all targets run: nx show project e2e-vite ",
   "targets": {}
 }

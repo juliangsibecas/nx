@@ -97,4 +97,4 @@ The `@nx/gradle` plugin will automatically split your e2e tasks by file if you p
 
 ## View Inferred Tasks
 
-To view inferred tasks for a project, open the [project details view](/features/explore-graph#explore-projects-in-your-workspace) in Nx Console or run `nx show project my-project --web` in the command line.
+To view inferred tasks for a project, open the [project details view](/features/explore-graph#explore-projects-in-your-workspace) in Nx Console or run `nx show project my-project` in the command line.

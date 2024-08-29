@@ -123,7 +123,7 @@ Before we start running tasks, let's explore the tasks available for the `applic
 that we've installed reflects Gradle's tasks to Nx, which allows it to run any of the Gradle tasks defined for that project. You can view the available tasks either through [Nx Console](/getting-started/editor-setup) or from the terminal:
 
 ```shell {% path="~/gradle-tutorial" %}
-./nx show project application --web
+./nx show project application
 ```
 
 {% project-details title="Project Details View" jsonFile="shared/tutorials/gradle-pdv.json" expandedTargets=["build"] height="520px" %}

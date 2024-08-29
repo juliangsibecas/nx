@@ -9,7 +9,7 @@ A project's configuration is constructed by Nx from three sources:
 Each source will [overwrite the previous source](/recipes/running-tasks/pass-args-to-commands). That means `targetDefaults` will overwrite inferred tasks and project level configuration will overwrite both `targetDefaults` and inferred tasks. The combined project configuration can be viewed in the project details view by using [Nx Console](/getting-started/editor-setup) in your IDE or by running:
 
 ```shell
-nx show project myproject --web
+nx show project myproject
 ```
 
 {% project-details title="Project Details View" %}

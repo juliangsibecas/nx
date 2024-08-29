@@ -4,6 +4,6 @@
   "sourceRoot": "nx-dev/ui-cloud/src",
   "projectType": "library",
   "tags": [],
-  "// targets": "to see all targets run: nx show project ui-cloud --web",
+  "// targets": "to see all targets run: nx show project ui-cloud ",
   "targets": {}
 }

@@ -70,7 +70,7 @@ exports[`app generated files content - as-provided - my-app general application 
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "my-app/src",
-  "// targets": "to see all targets run: nx show project my-app --web",
+  "// targets": "to see all targets run: nx show project my-app",
   "targets": {}
 }
 "
@@ -410,7 +410,7 @@ exports[`app generated files content - as-provided - myApp general application s
   "$schema": "../node_modules/nx/schemas/project-schema.json",
   "projectType": "application",
   "sourceRoot": "myApp/src",
-  "// targets": "to see all targets run: nx show project myApp --web",
+  "// targets": "to see all targets run: nx show project myApp",
   "targets": {}
 }
 "

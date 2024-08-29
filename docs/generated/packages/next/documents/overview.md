@@ -63,7 +63,7 @@ The `@nx/next` plugin will create tasks for any project that has a Next.js confi
 
 ### View Inferred Tasks
 
-To view inferred tasks for a project, open the [project details view](/concepts/inferred-tasks) in Nx Console or run `nx show project <project-name> --web` in your command line.
+To view inferred tasks for a project, open the [project details view](/concepts/inferred-tasks) in Nx Console or run `nx show project <project-name>` in your command line.
 
 ### @nx/next Configuration
 

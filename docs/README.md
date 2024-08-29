@@ -302,7 +302,7 @@ Have a more decent button-like widget that you can place below sections of a tut
 
 #### Project Details View
 
-Embed a Project Details View that is identical what is shown in Nx Console or `nx show project myproject --web`
+Embed a Project Details View that is identical what is shown in Nx Console or `nx show project myproject`
 
 ````markdown
 {% project-details title="Test" height="100px" %}

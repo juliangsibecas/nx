@@ -4,6 +4,6 @@
   "sourceRoot": "e2e/webpack",
   "projectType": "application",
   "implicitDependencies": ["webpack"],
-  "// targets": "to see all targets run: nx show project e2e-webpack --web",
+  "// targets": "to see all targets run: nx show project e2e-webpack ",
   "targets": {}
 }

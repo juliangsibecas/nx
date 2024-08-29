@@ -150,7 +150,7 @@ You do not have to do anything manually. Nx will create the configuration for yo
 
 You can read more about the `browserTarget` in the [official Angular documentation](https://angular.dev/cli/serve).
 
-Your Storybook targets in your `project.json` (or if you run `nx show project my-project --web`) will look like this:
+Your Storybook targets in your `project.json` (or if you run `nx show project my-project`) will look like this:
 
 ```jsonc {% fileName="project.json" %}
     "storybook": {

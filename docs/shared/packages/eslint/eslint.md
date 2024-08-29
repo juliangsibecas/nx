@@ -37,7 +37,7 @@ Even if a project has an ESLint configuration file, it will only have an inferre
 
 ### View Inferred Tasks
 
-To view inferred tasks for a project, open the [project details view](/concepts/inferred-tasks) in Nx Console or run `nx show project my-project --web` in the command line.
+To view inferred tasks for a project, open the [project details view](/concepts/inferred-tasks) in Nx Console or run `nx show project my-project` in the command line.
 
 ### @nx/eslint Configuration
 

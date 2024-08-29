@@ -60,7 +60,7 @@ The `@nx/cypress` plugin will create a task for any project that has a Cypress c
 
 ### View Inferred Tasks
 
-To view inferred tasks for a project, open the [project details view](/concepts/inferred-tasks) in Nx Console or run `nx show project my-project --web` in the command line.
+To view inferred tasks for a project, open the [project details view](/concepts/inferred-tasks) in Nx Console or run `nx show project my-project` in the command line.
 
 ### @nx/cypress Configuration
 

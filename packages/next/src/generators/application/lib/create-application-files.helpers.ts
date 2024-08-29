@@ -378,7 +378,7 @@ export function createAppJsx(name: string) {
               </svg>
               View project details
             </summary>
-            <pre>nx show project ${name} --web</pre>
+            <pre>nx show project ${name}</pre>
           </details>
           <details>
             <summary>

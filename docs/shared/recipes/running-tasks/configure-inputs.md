@@ -69,7 +69,7 @@ Doing so will show a view such as the one below:
 
 Nx Console has a button which will show a preview of this screen when a project level configuration file (`project.json` or `package.json`) is opened in the IDE. Read more at [Nx Console Project Details View](/recipes/nx-console/console-project-details).
 
-Another way of accessing this information is to run `nx show project myreactapp --web` and the view above will be opened in a browser.
+Another way of accessing this information is to run `nx show project myreactapp` and the view above will be opened in a browser.
 
 Use this tool to help understand what inputs are being used by Nx in your workspace.
 

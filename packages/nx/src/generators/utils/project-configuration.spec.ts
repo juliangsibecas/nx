@@ -73,7 +73,7 @@ describe('project configuration', () => {
         "name": "test",
         "$schema": "../../node_modules/nx/schemas/project-schema.json",
         "sourceRoot": "libs/test/src",
-        "// targets": "to see all targets run: nx show project test --web",
+        "// targets": "to see all targets run: nx show project test",
         "targets": {}
       }
       "
@@ -110,7 +110,7 @@ describe('project configuration', () => {
         "name": "test",
         "$schema": "../../node_modules/nx/schemas/project-schema.json",
         "sourceRoot": "libs/test/src",
-        "// targets": "to see all targets run: nx show project test --web",
+        "// targets": "to see all targets run: nx show project test",
         "targets": {}
       }
       "

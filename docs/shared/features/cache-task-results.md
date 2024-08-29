@@ -153,7 +153,7 @@ This means **you don't need to manually specify cacheable operations for Vite ta
 To view the task settings that have been automatically configured by a plugin, use the following command:
 
 ```shell
-nx show project <project-name> --web
+nx show project <project-name>
 ```
 
 Alternatively, you can view these directly in your editor by installing [Nx Console](/getting-started/editor-setup).

@@ -208,7 +208,7 @@ nx e2e e2e # runs e2e tests from the e2e project with Cypress
 Nx identifies available tasks for your project from [tooling configuration files](/concepts/inferred-tasks), `package.json` scripts and the targets defined in `project.json`. All tasks from the `myngapp` project are defined in its `project.json` file, but the companion `e2e` project has its tasks inferred from configuration files. To view the tasks that Nx has detected, look in the [Nx Console](/getting-started/editor-setup), [Project Details View](/recipes/nx-console/console-project-details) or run:
 
 ```shell
-nx show project e2e --web
+nx show project e2e
 ```
 
 {% project-details title="Project Details View" %}

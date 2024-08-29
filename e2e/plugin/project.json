@@ -4,6 +4,6 @@
   "sourceRoot": "e2e/plugin",
   "projectType": "application",
   "implicitDependencies": ["create-nx-plugin"],
-  "// targets": "to see all targets run: nx show project e2e-plugin --web",
+  "// targets": "to see all targets run: nx show project e2e-plugin ",
   "targets": {}
 }
