@@ -7,6 +7,7 @@ import type {
 import { output } from './output';
 import type { ProjectGraphError } from '../project-graph/error-types';
 import { daemonClient } from '../daemon/client/client';
+import { TaskStatus } from '../tasks-runner/tasks-runner';
 
 type PropertyDescription = {
   type?: string | string[];
@@ -92,11 +93,13 @@ export type Options = {
 export async function handleErrors(
   isVerbose: boolean,
   fn: Function
-): Promise<number> {
+): Promise<NodeJS.Process['exitCode']> {
   try {
     const result = await fn();
     if (typeof result === 'number') {
       return result;
+    } else if (typeof result?.status === 'number') {
+      return result.status;
     }
     return 0;
   } catch (err) {

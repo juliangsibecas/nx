@@ -1,7 +1,7 @@
 import { output } from '../../utils/output';
 import { TaskStatus } from '../tasks-runner';
 import { getPrintableCommandArgsForTask } from '../utils';
-import type { LifeCycle } from '../life-cycle';
+import type { LifeCycle, TaskResult } from '../life-cycle';
 import { Task } from '../../config/task-graph';
 import { formatTargetsAndProjects } from './formatting-utils';
 
@@ -14,8 +14,9 @@ import { formatTargetsAndProjects } from './formatting-utils';
  * the dynamic equivalent of this life cycle is usually preferable.
  */
 export class StaticRunOneTerminalOutputLifeCycle implements LifeCycle {
-  failedTasks = [] as Task[];
-  cachedTasks = [] as Task[];
+  private failedTasks = [] as Task[];
+  private cachedTasks = [] as Task[];
+  private taskResultsMap = {} as Record<string, TaskResult>;
 
   constructor(
     private readonly initiatingProject: string,
@@ -90,10 +91,9 @@ export class StaticRunOneTerminalOutputLifeCycle implements LifeCycle {
     }
   }
 
-  endTasks(
-    taskResults: { task: Task; status: TaskStatus; code: number }[]
-  ): void {
+  endTasks(taskResults: TaskResult[]): void {
     for (let t of taskResults) {
+      this.taskResultsMap[t.task.id] = t;
       if (t.status === 'failure') {
         this.failedTasks.push(t.task);
       } else if (t.status === 'local-cache') {
@@ -126,5 +126,9 @@ export class StaticRunOneTerminalOutputLifeCycle implements LifeCycle {
        */
       output.logCommandOutput(args.join(' '), status, '');
     }
+  }
+
+  getTaskResults(): Record<string, TaskResult> {
+    return this.taskResultsMap;
   }
 }

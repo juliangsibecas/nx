@@ -3,7 +3,7 @@ import { dots } from 'cli-spinners';
 import { EOL } from 'os';
 import * as readline from 'readline';
 import { output } from '../../utils/output';
-import type { LifeCycle } from '../life-cycle';
+import type { LifeCycle, TaskResult } from '../life-cycle';
 import { prettyTime } from './pretty-time';
 import { Task } from '../../config/task-graph';
 import { formatFlags, formatTargetsAndProjects } from './formatting-utils';
@@ -94,6 +94,7 @@ export async function createRunOneDynamicOutputRenderer({
   let totalSuccessfulTasks = 0;
   let totalFailedTasks = 0;
   let totalCachedTasks = 0;
+  let taskResultsMap: Record<string, TaskResult> = {};
 
   // Used to control the rendering of the spinner
   let dependentTargetsCurrentFrame = 0;
@@ -235,10 +236,10 @@ export async function createRunOneDynamicOutputRenderer({
     }
   };
 
-  lifeCycle.endTasks = (taskResults) => {
+  lifeCycle.endTasks = (taskResults: TaskResult[]) => {
     for (let t of taskResults) {
+      taskResultsMap[t.task.id] = t;
       totalCompletedTasks++;
-
       switch (t.status) {
         case 'remote-cache':
         case 'local-cache':
@@ -362,6 +363,8 @@ export async function createRunOneDynamicOutputRenderer({
     }
     resolveRenderIsDonePromise();
   };
+
+  lifeCycle.getTaskResults = () => taskResultsMap;
 
   return { lifeCycle, renderIsDone };
 }

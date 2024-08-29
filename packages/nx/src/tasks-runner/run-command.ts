@@ -28,7 +28,7 @@ import {
 } from '../utils/sync-generators';
 import { workspaceRoot } from '../utils/workspace-root';
 import { createTaskGraph } from './create-task-graph';
-import { CompositeLifeCycle, LifeCycle } from './life-cycle';
+import { CompositeLifeCycle, LifeCycle, TaskResult } from './life-cycle';
 import { createRunManyDynamicOutputRenderer } from './life-cycles/dynamic-run-many-terminal-output-life-cycle';
 import { createRunOneDynamicOutputRenderer } from './life-cycles/dynamic-run-one-terminal-output-life-cycle';
 import { StaticRunManyTerminalOutputLifeCycle } from './life-cycles/static-run-many-terminal-output-life-cycle';
@@ -168,48 +168,81 @@ export async function runCommand(
 ): Promise<NodeJS.Process['exitCode']> {
   const status = await handleErrors(
     process.env.NX_VERBOSE_LOGGING === 'true',
-    async () => {
-      const projectNames = projectsToRun.map((t) => t.name);
-
-      const { projectGraph, taskGraph } =
-        await ensureWorkspaceIsInSyncAndGetGraphs(
-          currentProjectGraph,
-          nxJson,
-          projectNames,
-          nxArgs,
-          overrides,
-          extraTargetDependencies,
-          extraOptions
-        );
-      const tasks = Object.values(taskGraph.tasks);
-
-      const { lifeCycle, renderIsDone } = await getTerminalOutputLifeCycle(
-        initiatingProject,
-        projectNames,
-        tasks,
+    () =>
+      runCommandForProjects(
+        projectsToRun,
+        currentProjectGraph,
+        { nxJson },
         nxArgs,
-        nxJson,
-        overrides
-      );
-
-      const status = await invokeTasksRunner({
-        tasks,
-        projectGraph,
-        taskGraph,
-        lifeCycle,
-        nxJson,
-        nxArgs,
-        loadDotEnvFiles: extraOptions.loadDotEnvFiles,
+        overrides,
         initiatingProject,
-      });
-
-      await renderIsDone;
-
-      return status;
-    }
+        extraTargetDependencies,
+        extraOptions
+      )
   );
 
   return status;
+}
+
+export async function runCommandForProjects(
+  projectsToRun: ProjectGraphProjectNode[],
+  currentProjectGraph: ProjectGraph,
+  { nxJson }: { nxJson: NxJsonConfiguration },
+  nxArgs: NxArgs,
+  overrides: any,
+  initiatingProject: string | null,
+  extraTargetDependencies: Record<string, (TargetDependencyConfig | string)[]>,
+  extraOptions: { excludeTaskDependencies: boolean; loadDotEnvFiles: boolean }
+): Promise<{
+  status: NodeJS.Process['exitCode'];
+  projectResults: Record<string, TaskStatus>;
+}> {
+  const projectNames = projectsToRun.map((t) => t.name);
+
+  const { projectGraph, taskGraph } = await ensureWorkspaceIsInSyncAndGetGraphs(
+    currentProjectGraph,
+    nxJson,
+    projectNames,
+    nxArgs,
+    overrides,
+    extraTargetDependencies,
+    extraOptions
+  );
+  const tasks = Object.values(taskGraph.tasks);
+
+  const { lifeCycle, renderIsDone } = await getTerminalOutputLifeCycle(
+    initiatingProject,
+    projectNames,
+    tasks,
+    nxArgs,
+    nxJson,
+    overrides
+  );
+
+  const status = await invokeTasksRunner({
+    tasks,
+    projectGraph,
+    taskGraph,
+    lifeCycle,
+    nxJson,
+    nxArgs,
+    loadDotEnvFiles: extraOptions.loadDotEnvFiles,
+    initiatingProject,
+  });
+
+  await renderIsDone;
+
+  const taskResults: Record<string, TaskResult> =
+    lifeCycle.getTaskResults?.() ?? {};
+
+  const projectResults: Record<string, TaskStatus> = Object.values(
+    taskResults
+  ).reduce((results, taskResult) => {
+    results[taskResult.task.target.project] = taskResult.status;
+    return results;
+  }, {});
+
+  return { status, projectResults };
 }
 
 async function ensureWorkspaceIsInSyncAndGetGraphs(
@@ -405,7 +438,7 @@ export async function invokeTasksRunner({
   nxArgs: NxArgs;
   loadDotEnvFiles: boolean;
   initiatingProject: string | null;
-}) {
+}): Promise<NodeJS.Process['exitCode']> {
   setEnvVarsBasedOnArgs(nxArgs, loadDotEnvFiles);
 
   const { tasksRunner, runnerOptions } = getRunner(nxArgs, nxJson);
@@ -520,27 +553,6 @@ function constructLifeCycles(lifeCycle: LifeCycle) {
   return lifeCycles;
 }
 
-function mergeTargetDependencies(
-  defaults: TargetDefaults | undefined | null,
-  deps: TargetDependencies
-): TargetDependencies {
-  const res = {};
-  Object.keys(defaults ?? {}).forEach((k) => {
-    res[k] = defaults[k].dependsOn;
-  });
-  if (deps) {
-    Object.keys(deps).forEach((k) => {
-      if (res[k]) {
-        res[k] = [...res[k], deps[k]];
-      } else {
-        res[k] = deps[k];
-      }
-    });
-
-    return res;
-  }
-}
-
 async function anyFailuresInPromise(
   promise: Promise<{ [id: string]: TaskStatus }>
 ) {
@@ -591,7 +603,7 @@ function shouldUseDynamicLifeCycle(
   return !tasks.find((t) => shouldStreamOutput(t, null));
 }
 
-function loadTasksRunner(modulePath: string) {
+function loadTasksRunner(modulePath: string): TasksRunner {
   try {
     const maybeTasksRunner = require(modulePath) as
       | TasksRunner

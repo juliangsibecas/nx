@@ -1,7 +1,7 @@
 import { output } from '../../utils/output';
 import { TaskStatus } from '../tasks-runner';
 import { getPrintableCommandArgsForTask } from '../utils';
-import type { LifeCycle } from '../life-cycle';
+import type { LifeCycle, TaskResult } from '../life-cycle';
 import { Task } from '../../config/task-graph';
 import { formatFlags, formatTargetsAndProjects } from './formatting-utils';
 
@@ -14,9 +14,10 @@ import { formatFlags, formatTargetsAndProjects } from './formatting-utils';
  * the dynamic equivalent of this life cycle is usually preferable.
  */
 export class StaticRunManyTerminalOutputLifeCycle implements LifeCycle {
-  failedTasks = [] as Task[];
-  cachedTasks = [] as Task[];
-  allCompletedTasks = new Map<string, Task>();
+  private failedTasks = [] as Task[];
+  private cachedTasks = [] as Task[];
+  private allCompletedTasks = new Map<string, Task>();
+  private taskResultsMap = {} as Record<string, TaskResult>;
 
   constructor(
     private readonly projectNames: string[],
@@ -126,10 +127,9 @@ export class StaticRunManyTerminalOutputLifeCycle implements LifeCycle {
     return this.tasks.filter((t) => !this.allCompletedTasks.has(t.id));
   }
 
-  endTasks(
-    taskResults: { task: Task; status: TaskStatus; code: number }[]
-  ): void {
+  endTasks(taskResults: TaskResult[]): void {
     for (let t of taskResults) {
+      this.taskResultsMap[t.task.id] = t;
       this.allCompletedTasks.set(t.task.id, t.task);
       if (t.status === 'failure') {
         this.failedTasks.push(t.task);
@@ -150,5 +150,9 @@ export class StaticRunManyTerminalOutputLifeCycle implements LifeCycle {
   ) {
     const args = getPrintableCommandArgsForTask(task);
     output.logCommandOutput(args.join(' '), cacheStatus, terminalOutput);
+  }
+
+  getTaskResults(): Record<string, TaskResult> {
+    return this.taskResultsMap;
   }
 }

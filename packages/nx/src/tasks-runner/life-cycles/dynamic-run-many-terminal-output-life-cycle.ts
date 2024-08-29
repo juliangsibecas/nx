@@ -3,7 +3,7 @@ import { dots } from 'cli-spinners';
 import { EOL } from 'os';
 import * as readline from 'readline';
 import { output } from '../../utils/output';
-import type { LifeCycle } from '../life-cycle';
+import type { LifeCycle, TaskResult } from '../life-cycle';
 import type { TaskStatus } from '../tasks-runner';
 import { Task } from '../../config/task-graph';
 import { prettyTime } from './pretty-time';
@@ -86,6 +86,7 @@ export async function createRunManyDynamicOutputRenderer({
   let totalSuccessfulTasks = 0;
   let totalFailedTasks = 0;
   let totalCachedTasks = 0;
+  let taskResultsMap: Record<string, TaskResult> = {};
 
   // Used to control the rendering of the spinner on each project row
   let currentFrame = 0;
@@ -447,8 +448,9 @@ export async function createRunManyDynamicOutputRenderer({
     tasksToTerminalOutputs[task.id] = output;
   };
 
-  lifeCycle.endTasks = (taskResults) => {
+  lifeCycle.endTasks = (taskResults: TaskResult[]) => {
     for (let t of taskResults) {
+      taskResultsMap[t.task.id] = t;
       totalCompletedTasks++;
       const matchingTaskRow = taskRows.find((r) => r.task.id === t.task.id);
       if (matchingTaskRow) {
@@ -473,6 +475,8 @@ export async function createRunManyDynamicOutputRenderer({
       printTaskResult(t.task, t.status);
     }
   };
+
+  lifeCycle.getTaskResults = () => taskResultsMap;
 
   return { lifeCycle, renderIsDone };
 }

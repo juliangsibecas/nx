@@ -45,6 +45,8 @@ export interface LifeCycle {
     status: TaskStatus,
     output: string
   ): void;
+
+  getTaskResults?(): Record<string, TaskResult>;
 }
 
 export class CompositeLifeCycle implements LifeCycle {
@@ -123,5 +125,13 @@ export class CompositeLifeCycle implements LifeCycle {
         l.printTaskTerminalOutput(task, status, output);
       }
     }
+  }
+
+  getTaskResults(): Record<string, TaskResult> {
+    let taskResults: Record<string, TaskResult> = {};
+    for (let l of this.lifeCycles) {
+      taskResults = { ...taskResults, ...l.getTaskResults() };
+    }
+    return taskResults;
   }
 }
