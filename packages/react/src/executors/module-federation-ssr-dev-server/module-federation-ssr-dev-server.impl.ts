@@ -76,7 +76,9 @@ function startSsrStaticRemotesFileServer(
   ssrStaticRemotesConfig: StaticRemotesConfig,
   context: ExecutorContext,
   options: ModuleFederationSsrDevServerOptions
-) {
+):
+  | AsyncGenerator<{ success: boolean; baseUrl?: string }>
+  | AsyncIterable<{ success: boolean; baseUrl?: string }> {
   if (ssrStaticRemotesConfig.remotes.length === 0) {
     return createAsyncIterable(({ next, done }) => {
       next({ success: true });
@@ -355,26 +357,28 @@ export default async function* moduleFederationSsrDevServer(
       : undefined
   );
 
-  return yield* combineAsyncIterables(
+  const combined = combineAsyncIterables(
     staticRemotesIter,
     ...devRemoteIters,
     createAsyncIterable<{ success: true; baseUrl: string }>(
       async ({ next, done }) => {
+        const host = options.host ?? 'localhost';
+        const baseUrl = `http${options.ssl ? 's' : ''}://${host}:${
+          options.port
+        }`;
         if (!options.isInitialHost) {
+          next({ success: true, baseUrl });
           done();
           return;
         }
 
         if (remotes.remotePorts.length === 0) {
+          next({ success: true, baseUrl });
           done();
           return;
         }
 
         try {
-          const host = options.host ?? 'localhost';
-          const baseUrl = `http${options.ssl ? 's' : ''}://${host}:${
-            options.port
-          }`;
           const portsToWaitFor = staticRemotesIter
             ? [options.staticRemotesPort, ...remotes.remotePorts]
             : [...remotes.remotePorts];
@@ -406,6 +410,13 @@ export default async function* moduleFederationSsrDevServer(
       }
     )
   );
+
+  let refs = 2 + (devRemoteIters?.length ?? 0);
+  for await (const result of combined) {
+    if (result.success === false) throw new Error('Remotes failed to start');
+    if (result.success) refs--;
+    if (refs === 0) break;
+  }
 
   return yield* iter;
 }

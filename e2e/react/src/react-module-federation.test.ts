@@ -25,7 +25,7 @@ describe('React Module Federation', () => {
       newProject({ packages: ['@nx/react', '@nx/webpack'] });
     });
 
-    afterAll(() => cleanupProject());
+    // afterAll(() => cleanupProject());
 
     it.each`
       js
@@ -175,7 +175,7 @@ describe('React Module Federation', () => {
         await killProcessAndPorts(serveResult.pid);
       }, 500_000);
 
-      it('should serve remotes as static and they should be able to be accessed from the host', async () => {
+      it('debugthis should serve remotes as static and they should be able to be accessed from the host', async () => {
         const shell = uniq('shell');
         const remote1 = uniq('remote1');
         const remote2 = uniq('remote2');
