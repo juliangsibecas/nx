@@ -29,6 +29,7 @@ import { showNxWarning } from '../src/utils/nx/show-nx-warning';
 import { messages, recordStat } from '../src/utils/nx/ab-testing';
 import { mapErrorToBodyLines } from '../src/utils/error-utils';
 import { existsSync } from 'fs';
+import { isCI } from '../src/utils/ci/is-ci';
 
 interface BaseArguments extends CreateWorkspaceOptions {
   preset: Preset;
@@ -367,6 +368,7 @@ async function determineStack(
         return 'vue';
       case Preset.Nest:
       case Preset.NodeStandalone:
+      case Preset.NodeMonorepo:
       case Preset.Express:
         return 'node';
       case Preset.Apps:
@@ -461,23 +463,27 @@ async function determineNoneOptions(
   } else if (preset === Preset.TsStandalone) {
     // Only standalone TS preset generates a default package, so we need to provide --js and --appName options.
     appName = parsedArgs.name;
-    const reply = await enquirer.prompt<{ ts: 'Yes' | 'No' }>([
-      {
-        name: 'ts',
-        message: `Would you like to use TypeScript with this project?`,
-        type: 'autocomplete',
-        choices: [
-          {
-            name: 'Yes',
-          },
-          {
-            name: 'No',
-          },
-        ],
-        initial: 0,
-      },
-    ]);
-    js = reply.ts === 'No';
+    if (!parsedArgs.interactive || isCI()) {
+      js = false;
+    } else {
+      const reply = await enquirer.prompt<{ ts: 'Yes' | 'No' }>([
+        {
+          name: 'ts',
+          message: `Would you like to use TypeScript with this project?`,
+          type: 'autocomplete',
+          choices: [
+            {
+              name: 'Yes',
+            },
+            {
+              name: 'No',
+            },
+          ],
+          initial: 0,
+        },
+      ]);
+      js = reply.ts === 'No';
+    }
   }
 
   return { preset, js, appName };
@@ -570,48 +576,52 @@ async function determineReactOptions(
     preset === Preset.NextJs ||
     preset === Preset.NextJsStandalone
   ) {
-    const reply = await enquirer.prompt<{ style: string }>([
-      {
-        name: 'style',
-        message: `Default stylesheet format`,
-        initial: 0,
-        type: 'autocomplete',
-        choices: [
-          {
-            name: 'css',
-            message: 'CSS',
-          },
-          {
-            name: 'scss',
-            message: 'SASS(.scss)       [ https://sass-lang.com   ]',
-          },
-          {
-            name: 'less',
-            message: 'LESS              [ https://lesscss.org     ]',
-          },
-          {
-            name: 'tailwind',
-            message: 'tailwind          [ https://tailwindcss.com     ]',
-          },
-          {
-            name: 'styled-components',
-            message:
-              'styled-components [ https://styled-components.com            ]',
-          },
-          {
-            name: '@emotion/styled',
-            message:
-              'emotion           [ https://emotion.sh                       ]',
-          },
-          {
-            name: 'styled-jsx',
-            message:
-              'styled-jsx        [ https://www.npmjs.com/package/styled-jsx ]',
-          },
-        ],
-      },
-    ]);
-    style = reply.style;
+    if (!parsedArgs.interactive || isCI()) {
+      style = 'none';
+    } else {
+      const reply = await enquirer.prompt<{ style: string }>([
+        {
+          name: 'style',
+          message: `Default stylesheet format`,
+          initial: 0,
+          type: 'autocomplete',
+          choices: [
+            {
+              name: 'css',
+              message: 'CSS',
+            },
+            {
+              name: 'scss',
+              message: 'SASS(.scss)       [ https://sass-lang.com   ]',
+            },
+            {
+              name: 'less',
+              message: 'LESS              [ https://lesscss.org     ]',
+            },
+            {
+              name: 'tailwind',
+              message: 'tailwind          [ https://tailwindcss.com     ]',
+            },
+            {
+              name: 'styled-components',
+              message:
+                'styled-components [ https://styled-components.com            ]',
+            },
+            {
+              name: '@emotion/styled',
+              message:
+                'emotion           [ https://emotion.sh                       ]',
+            },
+            {
+              name: 'styled-jsx',
+              message:
+                'styled-jsx        [ https://www.npmjs.com/package/styled-jsx ]',
+            },
+          ],
+        },
+      ]);
+      style = reply.style;
+    }
   }
 
   return {
@@ -878,6 +888,8 @@ async function determineNodeOptions(
 
   if (parsedArgs.docker !== undefined) {
     docker = parsedArgs.docker;
+  } else if (!parsedArgs.interactive || isCI()) {
+    docker = false;
   } else {
     const reply = await enquirer.prompt<{ docker: 'Yes' | 'No' }>([
       {
@@ -991,6 +1003,7 @@ async function determineAppName(
   >
 ): Promise<string> {
   if (parsedArgs.appName) return parsedArgs.appName;
+  if (!parsedArgs.interactive || isCI()) return parsedArgs.name;
 
   const { appName } = await enquirer.prompt<{ appName: string }>([
     {
@@ -1050,6 +1063,8 @@ async function determineReactBundler(
   parsedArgs: yargs.Arguments<ReactArguments>
 ): Promise<'webpack' | 'vite' | 'rspack'> {
   if (parsedArgs.bundler) return parsedArgs.bundler;
+  if (!parsedArgs.interactive || isCI()) return 'vite';
+
   const reply = await enquirer.prompt<{
     bundler: 'webpack' | 'vite' | 'rspack';
   }>([
@@ -1071,6 +1086,7 @@ async function determineReactBundler(
           message: 'Rspack  [ https://www.rspack.dev/ ]',
         },
       ],
+      initial: 0,
     },
   ]);
   return reply.bundler;
@@ -1080,6 +1096,8 @@ async function determineNextAppDir(
   parsedArgs: yargs.Arguments<ReactArguments>
 ): Promise<boolean> {
   if (parsedArgs.nextAppDir !== undefined) return parsedArgs.nextAppDir;
+  if (!parsedArgs.interactive || isCI()) return true;
+
   const reply = await enquirer.prompt<{ nextAppDir: 'Yes' | 'No' }>([
     {
       name: 'nextAppDir',
@@ -1103,6 +1121,8 @@ async function determineNextSrcDir(
   parsedArgs: yargs.Arguments<ReactArguments>
 ): Promise<boolean> {
   if (parsedArgs.nextSrcDir !== undefined) return parsedArgs.nextSrcDir;
+  if (!parsedArgs.interactive || isCI()) return true;
+
   const reply = await enquirer.prompt<{ nextSrcDir: 'Yes' | 'No' }>([
     {
       name: 'nextSrcDir',
@@ -1126,6 +1146,8 @@ async function determineVueFramework(
   parsedArgs: yargs.Arguments<VueArguments>
 ): Promise<'none' | 'nuxt'> {
   if (!!parsedArgs.framework) return parsedArgs.framework;
+  if (!parsedArgs.interactive || isCI()) return 'none';
+
   const reply = await enquirer.prompt<{
     framework: 'none' | 'nuxt';
   }>([
@@ -1153,7 +1175,9 @@ async function determineVueFramework(
 async function determineNodeFramework(
   parsedArgs: yargs.Arguments<NodeArguments>
 ): Promise<'express' | 'fastify' | 'koa' | 'nest' | 'none'> {
-  if (parsedArgs.framework) return parsedArgs.framework;
+  if (!!parsedArgs.framework) return parsedArgs.framework;
+  if (!parsedArgs.interactive || isCI()) return 'none';
+
   const reply = await enquirer.prompt<{
     framework: 'express' | 'fastify' | 'koa' | 'nest' | 'none';
   }>([
@@ -1183,6 +1207,7 @@ async function determineNodeFramework(
           message: 'NestJs  [ https://nestjs.com/     ]',
         },
       ],
+      initial: 0,
     },
   ]);
   return reply.framework;
@@ -1194,6 +1219,8 @@ async function determineE2eTestRunner(
   }>
 ): Promise<'none' | 'cypress' | 'playwright'> {
   if (parsedArgs.e2eTestRunner) return parsedArgs.e2eTestRunner;
+  if (!parsedArgs.interactive || isCI()) return 'playwright';
+
   const reply = await enquirer.prompt<{
     e2eTestRunner: 'none' | 'cypress' | 'playwright';
   }>([
@@ -1215,6 +1242,7 @@ async function determineE2eTestRunner(
           message: 'None',
         },
       ],
+      initial: 0,
     },
   ]);
   return reply.e2eTestRunner;
