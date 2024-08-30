@@ -13,7 +13,7 @@ export const defaultYargsParserConfiguration: Partial<ParserConfigurationOptions
     'parse-positional-numbers': false,
   };
 
-export function withExcludeOption(yargs: Argv): Argv<ExcludeOptions> {
+export function withExcludeOption<T>(yargs: Argv<T>): Argv<T & ExcludeOptions> {
   return yargs.option('exclude', {
     describe: 'Exclude certain projects from being processed',
     type: 'string',
@@ -37,10 +37,11 @@ export interface RunOptions {
   batch: boolean;
   useAgents: boolean;
   excludeTaskDependencies: boolean;
+  ignoreOutOfSyncErrors: boolean;
 }
 
 export function withRunOptions<T>(yargs: Argv<T>): Argv<T & RunOptions> {
-  return withVerbose(withExcludeOption(yargs))
+  return withVerbose(withExcludeOption(withIgnoreOutOfSyncErrorsOptions(yargs)))
     .option('parallel', {
       describe: 'Max number of parallel processes [default is 3]',
       type: 'string',
@@ -106,7 +107,7 @@ export function withRunOptions<T>(yargs: Argv<T>): Argv<T & RunOptions> {
       type: 'boolean',
       hidden: true,
       alias: 'agents',
-    }) as Argv<Omit<RunOptions, 'exclude' | 'batch'>> as any;
+    }) as Argv<Omit<RunOptions, 'batch'>> as any;
 }
 
 export function withTargetAndConfigurationOption(
@@ -313,4 +314,23 @@ export function parseCSV(args: string[] | string): string[] {
   return items.map((i) =>
     i.startsWith('"') && i.endsWith('"') ? i.slice(1, -1) : i
   );
+}
+
+export function withIgnoreOutOfSyncErrorsOptions<T>(
+  yargs: Argv<T>
+): Argv<T & { ignoreOutOfSyncErrors: boolean }> {
+  return yargs
+    .option('ignoreOutOfSyncErrors', {
+      type: 'boolean',
+      // TODO(leo): add description and make it visible once it is stable
+      hidden: true,
+      alias: 'ignoreSyncErrors',
+    })
+    .middleware((args) => {
+      args.ignoreOutOfSyncErrors ??=
+        process.env.NX_IGNORE_OUT_OF_SYNC_ERRORS === 'true';
+      // If NX_IGNORE_OUT_OF_SYNC_ERRORS=false and --ignoreOutOfSyncErrors is passed, we want to set it to true favoring the arg
+      process.env.NX_IGNORE_OUT_OF_SYNC_ERRORS =
+        args.ignoreOutOfSyncErrors.toString();
+    });
 }
